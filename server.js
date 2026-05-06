@@ -185,7 +185,7 @@ app.post("/expand", upload.single("image"), async function (req, res) {
     var aiSize = getBestSize(imgW, imgH);
 
     var response = await openai.images.edit({
-      model: "dall-e-2",
+      model: "gpt-image-1",
       image: fs.createReadStream(imgPath),
       mask: fs.createReadStream(mskPath),
       prompt:
