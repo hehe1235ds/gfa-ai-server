@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter,"Segoe UI",-apple-system,sans-serif; background:#1e1e1e; color:#e0e0e0; padding:20px; display:flex; flex-direction:column; gap:14px; }
+  h2 { font-size:15px; font-weight:700; color:#fff; text-align:center; padding-bottom:8px; border-bottom:1px solid #333; }
+  .info { font-size:11px; color:#888; text-align:center; line-height:1.5; }
+  .sizes { display:flex; gap:6px; justify-content:center; }
+  .st { font-size:10px; color:#aaa; background:#2a2a2a; border:1px solid #3a3a3a; border-radius:4px; padding:3px 8px; }
+  label { font-size:12px; font-weight:600; color:#aaa; display:block; margin-bottom:6px; }
+  .g { display:flex; flex-direction:column; gap:4px; }
+  textarea { width:100%; min-height:50px; padding:10px 12px; font-size:13px; font-family:inherit; color:#fff; background:#2c2c2c; border:1px solid #444; border-radius:6px; resize:vertical; outline:none; }
+  textarea:focus { border-color:#0d99ff; }
+  textarea::placeholder { color:#666; }
+  .cnt { font-size:10px; color:#666; text-align:right; }
+  .sec { background:#252525; border:1px solid #383838; border-radius:8px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .sec > label { margin-bottom:0; }
+  .tabs { display:flex; gap:6px; }
+  .tb { flex:1; position:relative; }
+  .tb input { position:absolute; opacity:0; width:0; height:0; }
+  .tb .tl { display:block; text-align:center; padding:8px 4px; font-size:11px; font-weight:600; color:#999; background:#2c2c2c; border:1px solid #444; border-radius:6px; cursor:pointer; }
+  .tb input:checked + .tl { color:#fff; background:#0d99ff; border-color:#0d99ff; }
+  .tb .tl:hover { border-color:#666; }
+  .desc { font-size:10px; color:#777; min-height:14px; }
+  .mr { display:none; align-items:center; gap:8px; }
+  .mr.show { display:flex; }
+  .cpw { position:relative; width:32px; height:32px; border-radius:50%; overflow:hidden; border:2px solid #555; flex-shrink:0; }
+  .cpw input[type="color"] { position:absolute; top:-4px; left:-4px; width:40px; height:40px; border:none; cursor:pointer; }
+  .hx { flex:1; padding:7px 10px; font-size:13px; font-family:"Courier New",monospace; color:#fff; background:#2c2c2c; border:1px solid #444; border-radius:6px; outline:none; text-transform:uppercase; }
+  .hx:focus { border-color:#0d99ff; }
+  .fx { font-size:10px; color:#666; display:flex; align-items:center; gap:6px; }
+  .chip { display:inline-block; width:12px; height:12px; border-radius:2px; border:1px solid #555; }
+  .grad-row { display:flex; align-items:center; gap:8px; }
+  .grad-row input[type="checkbox"] { width:16px; height:16px; cursor:pointer; flex-shrink:0; }
+  .grad-row span { font-size:12px; color:#ccc; }
+  .dir-row { display:none; gap:6px; margin-top:4px; }
+  .dir-row.show { display:flex; }
+  .dir-btn { flex:1; position:relative; }
+  .dir-btn input { position:absolute; opacity:0; width:0; height:0; }
+  .dir-btn .dl { display:block; text-align:center; padding:6px 4px; font-size:10px; font-weight:600; color:#999; background:#2c2c2c; border:1px solid #444; border-radius:5px; cursor:pointer; }
+  .dir-btn input:checked + .dl { color:#fff; background:#555; border-color:#777; }
+  .dir-hint { font-size:9px; color:#666; }
+  .ai-wrap { border:1px solid #2a5a2a; border-radius:8px; overflow:hidden; }
+  .ai-toggle { width:100%; padding:10px 14px; font-size:12px; font-weight:600; color:#7dce82; background:#1a2a1a; border:none; cursor:pointer; text-align:left; display:flex; align-items:center; gap:8px; }
+  .ai-toggle:hover { background:#1e301e; }
+  .ai-arrow { transition:transform 0.2s; display:inline-block; }
+  .ai-arrow.open { transform:rotate(90deg); }
+  .ai-body { display:none; padding:14px; background:#1a2a1a; flex-direction:column; gap:10px; }
+  .ai-body.open { display:flex; }
+  .ai-guide { font-size:10px; color:#8b8; line-height:1.6; background:#152015; padding:10px; border-radius:5px; border:1px solid #2a4a2a; }
+  .ai-guide strong { color:#7dce82; }
+  .ai-status { font-size:10px; color:#888; min-height:14px; }
+  .ai-status.loading { color:#7dce82; }
+  .ai-status.error { color:#ff6b6b; }
+  .srv-label { font-size:10px; color:#666; margin-bottom:2px; }
+  .server-input { width:100%; padding:6px 10px; font-size:11px; font-family:"Courier New",monospace; color:#aaa; background:#222; border:1px solid #444; border-radius:5px; outline:none; }
+  .server-input:focus { border-color:#2a7a2a; color:#fff; }
+  #aiBtn { width:100%; padding:10px; font-size:13px; font-weight:700; color:#fff; background:#2a7a2a; border:none; border-radius:8px; cursor:pointer; }
+  #aiBtn:hover { background:#238a23; }
+  #aiBtn:active { transform:scale(0.98); }
+  #aiBtn:disabled { background:#444; color:#888; cursor:not-allowed; }
+  #btn { width:100%; padding:12px; font-size:14px; font-weight:700; color:#fff; background:#0d99ff; border:none; border-radius:8px; cursor:pointer; margin-top:4px; }
+  #btn:hover { background:#0b85e0; }
+  #btn:active { transform:scale(0.98); background:#0a76c8; }
+</style>
+</head>
+<body>
+
+  <h2>GFA Banner Generator</h2>
+  <p class="info">"asset" 프레임 기준 3가지 배너 생성</p>
+  <div class="sizes">
+    <span class="st">1200x628</span>
+    <span class="st">1200x1200</span>
+    <span class="st">1250x560</span>
+  </div>
+
+  <div class="g"><label for="mt">메인 텍스트 (maintx)</label><textarea id="mt" placeholder="메인 카피 입력" maxlength="100"></textarea><span class="cnt" id="mc">0 / 100</span></div>
+  <div class="g"><label for="sb">서브 텍스트 (subcopy)</label><textarea id="sb" placeholder="서브 카피 입력" maxlength="100"></textarea><span class="cnt" id="sc">0 / 100</span></div>
+
+  <div class="sec">
+    <label>메인 텍스트 색상</label>
+    <div class="tabs">
+      <div class="tb"><input type="radio" name="cm" id="cmA" value="auto" checked><label class="tl" for="cmA">AUTO</label></div>
+      <div class="tb"><input type="radio" name="cm" id="cmM" value="manual"><label class="tl" for="cmM">MANUAL</label></div>
+      <div class="tb"><input type="radio" name="cm" id="cmT" value="template"><label class="tl" for="cmT">TEMPLATE</label></div>
+    </div>
+    <div class="desc" id="cd">배경 밝기에 따라 자동 흑/백 결정</div>
+    <div class="mr" id="mr"><div class="cpw"><input type="color" id="cpk" value="#000000"></div><input type="text" class="hx" id="hxi" value="#000000" maxlength="7"></div>
+    <div class="fx"><span class="chip" style="background:#4A4A4A;"></span> subcopy는 항상 #4A4A4A</div>
+  </div>
+
+  <div class="sec">
+    <div class="grad-row"><input type="checkbox" id="grd"><span>그라데이션 추가</span></div>
+    <div class="dir-row" id="dirRow">
+      <div class="dir-btn"><input type="radio" name="gdir" id="gdTop" value="top" checked><label class="dl" for="gdTop">↓ TOP</label></div>
+      <div class="dir-btn"><input type="radio" name="gdir" id="gdLeft" value="left"><label class="dl" for="gdLeft">→ LEFT</label></div>
+    </div>
+    <div class="dir-hint" id="dirHint" style="display:none;"></div>
+  </div>
+
+  <button id="btn">배너 생성하기</button>
+
+  <!-- AI 배경 연장 -->
+  <div class="ai-wrap">
+    <button class="ai-toggle" id="aiToggle"><span class="ai-arrow" id="aiArrow">▶</span> AI 배경 연장</button>
+    <div class="ai-body" id="aiBody">
+      <div class="ai-guide">
+        <strong>사용법:</strong><br>
+        1. image 레이어 위에 사각형을 그리세요<br>
+        2. 이름을 <strong>"ai-mask"</strong>로 지정<br>
+        3. 채울 영역 + 기존 배경 20~40px 겹치게 배치<br>
+        4. 제품/로고는 포함하지 마세요<br>
+        5. 아래 버튼을 클릭하면 실행!
+      </div>
+
+      <div class="srv-label">서버 URL (팀 관리자에게 확인)</div>
+      <input type="text" class="server-input" id="srvUrl"
+             value="https://your-server.onrender.com"
+             placeholder="https://your-server.onrender.com">
+
+      <div class="ai-status" id="aiStat"></div>
+      <button id="aiBtn">AI 배경 연장 실행</button>
+    </div>
+  </div>
+
+<script>
+  // --- 배너 생성 UI ---
+  var DS={auto:"배경 밝기에 따라 자동 흑/백 결정",manual:"직접 색상을 선택하세요",template:"기존 maintx 색상 유지"};
+  var DD={top:"위쪽이 어둡고 아래로 투명",left:"왼쪽이 어둡고 오른쪽으로 투명"};
+  document.getElementById("mt").addEventListener("input",function(){document.getElementById("mc").textContent=this.value.length+" / 100";});
+  document.getElementById("sb").addEventListener("input",function(){document.getElementById("sc").textContent=this.value.length+" / 100";});
+  var cmR=document.getElementsByName("cm"); for(var i=0;i<cmR.length;i++) cmR[i].addEventListener("change",uCm); uCm();
+  function uCm(){var m=gCm();document.getElementById("cd").textContent=DS[m]||"";var r=document.getElementById("mr");if(m==="manual")r.classList.add("show");else r.classList.remove("show");}
+  function gCm(){var r=document.getElementsByName("cm");for(var i=0;i<r.length;i++){if(r[i].checked)return r[i].value;}return "auto";}
+  document.getElementById("cpk").addEventListener("input",function(){document.getElementById("hxi").value=this.value.toUpperCase();});
+  document.getElementById("hxi").addEventListener("input",function(){var v=this.value.trim();if(v&&v.charAt(0)!=="#")v="#"+v;if(/^#[0-9A-Fa-f]{6}$/.test(v))document.getElementById("cpk").value=v;});
+  document.getElementById("grd").addEventListener("change",uG);
+  var gR=document.getElementsByName("gdir");for(var i=0;i<gR.length;i++)gR[i].addEventListener("change",uGD);uG();
+  function uG(){var on=document.getElementById("grd").checked;var dr=document.getElementById("dirRow");var dh=document.getElementById("dirHint");if(on){dr.classList.add("show");dh.style.display="block";uGD();}else{dr.classList.remove("show");dh.style.display="none";}}
+  function uGD(){document.getElementById("dirHint").textContent=DD[gGD()]||"";}
+  function gGD(){var r=document.getElementsByName("gdir");for(var i=0;i<r.length;i++){if(r[i].checked)return r[i].value;}return "top";}
+
+  document.getElementById("btn").addEventListener("click",function(){
+    var mt=document.getElementById("mt").value.trim(),sb=document.getElementById("sb").value.trim();
+    if(!mt){alert("메인 텍스트를 입력해주세요.");return;}
+    if(!sb){alert("서브 텍스트를 입력해주세요.");return;}
+    var mode=gCm(),mc="#000000";
+    if(mode==="manual"){var h=document.getElementById("hxi").value.trim();if(h.charAt(0)!=="#")h="#"+h;if(!/^#[0-9A-Fa-f]{6}$/.test(h)){alert("올바른 HEX를 입력하세요.");return;}mc=h;}
+    parent.postMessage({pluginMessage:{type:"generate",maintx:mt,subcopy:sb,colorMode:mode,manualColor:mc,gradient:document.getElementById("grd").checked,gradDir:gGD()}},"*");
+  });
+
+  // --- AI 토글 ---
+  document.getElementById("aiToggle").addEventListener("click",function(){
+    var b=document.getElementById("aiBody"),a=document.getElementById("aiArrow");
+    if(b.classList.contains("open")){b.classList.remove("open");a.classList.remove("open");}
+    else{b.classList.add("open");a.classList.add("open");}
+  });
+
+  function aiSt(t,c){var e=document.getElementById("aiStat");e.textContent=t;e.className="ai-status"+(c?" "+c:"");}
+
+  // --- AI 실행 ---
+  document.getElementById("aiBtn").addEventListener("click",function(){
+    var url=document.getElementById("srvUrl").value.trim();
+    if(!url){alert("서버 URL을 입력해주세요.");return;}
+    // URL 끝 슬래시 제거
+    if(url.charAt(url.length-1)==="/") url=url.slice(0,-1);
+    aiSt("ai-mask 확인 중...","loading");
+    document.getElementById("aiBtn").disabled=true;
+    parent.postMessage({pluginMessage:{type:"ai-expand",serverUrl:url}},"*");
+  });
+
+  // --- code.js → UI: 서버 통신 ---
+  window.addEventListener("message",function(event){
+    try{
+      var msg=event.data&&event.data.pluginMessage;
+      if(!msg||msg.type!=="ai-expand-request") return;
+      aiSt("서버로 전송 중... (30초~1분 소요)","loading");
+
+      var byteStr=atob(msg.imageBase64);
+      var arr=new Uint8Array(byteStr.length);
+      for(var i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+      var blob=new Blob([arr],{type:"image/png"});
+
+      var fd=new FormData();
+      fd.append("image",blob,"image.png");
+      fd.append("maskInfo",JSON.stringify(msg.maskInfo));
+
+      fetch(msg.serverUrl+"/expand",{method:"POST",body:fd})
+        .then(function(res){
+          if(!res.ok) return res.json().then(function(j){throw new Error(j.error||"서버 "+res.status);});
+          return res.blob();
+        })
+        .then(function(rb){
+          var reader=new FileReader();
+          reader.onload=function(){
+            parent.postMessage({pluginMessage:{type:"ai-expand-result",imageBase64:reader.result.split(",")[1]}},"*");
+            aiSt("완료!","");
+            document.getElementById("aiBtn").disabled=false;
+          };
+          reader.readAsDataURL(rb);
+        })
+        .catch(function(err){
+          aiSt("오류: "+err.message,"error");
+          document.getElementById("aiBtn").disabled=false;
+        });
+    }catch(e){
+      aiSt("오류: "+e.message,"error");
+      document.getElementById("aiBtn").disabled=false;
+    }
+  });
+</script>
+</body>
+</html>
