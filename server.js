@@ -6,6 +6,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+// ── CORS: Figma 플러그인은 origin: null 환경 ──
+app.use((req, res, next) => {
+  res.set({
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+  });
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
+
 // ── Multer: 메모리 저장 (최대 10MB) ──
 const upload = multer({
   storage: multer.memoryStorage(),
