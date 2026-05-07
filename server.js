@@ -1,10 +1,18 @@
+// =============================================
+// GFA AI Server — Google Gemini (gemini-2.5-flash-image)
+// 배경 확장 + 이미지 편집 + 이미지 생성
+// =============================================
+
 import express from "express";
 import multer from "multer";
-import FormData from "form-data";
+import { GoogleGenAI } from "@google/genai";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+
+// ── Gemini 클라이언트 ──
+const ai = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 
 // ── CORS: Figma 플러그인은 origin: null 환경 ──
 app.use((req, res, next) => {
@@ -26,7 +34,7 @@ const upload = multer({
 
 // ── Health check ──
 app.get("/", (_req, res) => {
-  res.json({ status: "ok", model: "gpt-image-1" });
+  res.json({ status: "ok", model: "gemini-2.5-flash-image", provider: "google" });
 });
 
 // ── 이미지 편집 엔드포인트 ──
@@ -39,8 +47,8 @@ app.post(
   async (req, res) => {
     try {
       // 1) 입력 검증
-      if (!OPENAI_API_KEY) {
-        return res.status(500).json({ error: "OPENAI_API_KEY not configured" });
+      if (!GOOGLE_API_KEY) {
+        return res.status(500).json({ error: "GOOGLE_API_KEY not configured" });
       }
 
       const imageFile = req.files?.["image"]?.[0];
@@ -48,74 +56,72 @@ app.post(
         return res.status(400).json({ error: '"image" file is required' });
       }
 
-      const prompt = req.body.prompt;
-      if (!prompt) {
-        return res.status(400).json({ error: '"prompt" field is required' });
+      const prompt = req.body.prompt || "Expand the background naturally. Keep the style, lighting, and perspective consistent.";
+      const maskInfoRaw = req.body.mask_info;
+
+      // 2) 이미지를 base64로 변환
+      const imageBase64 = imageFile.buffer.toString("base64");
+      const imageMimeType = imageFile.mimetype || "image/png";
+
+      // 3) 프롬프트 구성 (마스크 정보가 있으면 포함)
+      let fullPrompt = prompt;
+      if (maskInfoRaw) {
+        try {
+          const mask = JSON.parse(maskInfoRaw);
+          fullPrompt += ` The area to expand/edit is at position x:${mask.x}, y:${mask.y} with size ${mask.w}x${mask.h} pixels relative to the image. Seamlessly extend the background into this region.`;
+        } catch (e) {
+          // mask_info 파싱 실패 시 무시
+        }
       }
 
-      // 2) OpenAI /v1/images/edits 용 multipart/form-data 구성
-      const form = new FormData();
-      form.append("model", "gpt-image-1");
-      form.append("prompt", prompt);
-      form.append("image", imageFile.buffer, {
-        filename: imageFile.originalname || "image.png",
-        contentType: imageFile.mimetype || "image/png",
-      });
+      console.log(`[edit] prompt: ${fullPrompt.substring(0, 100)}...`);
 
-      // 마스크가 있으면 첨부 (투명 영역 = 편집 대상)
-      const maskFile = req.files?.["mask"]?.[0];
-      if (maskFile) {
-        form.append("mask", maskFile.buffer, {
-          filename: maskFile.originalname || "mask.png",
-          contentType: "image/png",
-        });
-      }
-
-      // 선택적 파라미터
-      const size = req.body.size || "auto";
-      form.append("size", size);
-
-      const quality = req.body.quality || "auto";
-      form.append("quality", quality);
-
-      // gpt-image-1은 항상 b64_json 반환 — output_format으로 png 지정
-      form.append("output_format", "png");
-      form.append("n", "1");
-
-      // 3) OpenAI API 호출 (타임아웃 5분)
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-
-      const response = await fetch("https://api.openai.com/v1/images/edits", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          ...form.getHeaders(),
+      // 4) Gemini API 호출
+      const contents = [
+        {
+          inlineData: {
+            mimeType: imageMimeType,
+            data: imageBase64,
+          },
         },
-        body: form.getBuffer(),
-        signal: controller.signal,
+        {
+          text: fullPrompt,
+        },
+      ];
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: contents,
+        config: {
+          responseModalities: ["IMAGE"],
+        },
       });
 
-      clearTimeout(timeout);
+      // 5) 응답에서 이미지 추출
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (!parts || parts.length === 0) {
+        return res.status(502).json({ error: "No response from Gemini" });
+      }
 
-      // 4) 응답 처리
-      const data = await response.json();
+      let imageData = null;
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          imageData = part.inlineData.data;
+          break;
+        }
+      }
 
-      if (!response.ok) {
-        console.error("OpenAI error:", JSON.stringify(data, null, 2));
-        return res.status(response.status).json({
-          error: data.error?.message || "OpenAI API error",
-          detail: data.error,
+      if (!imageData) {
+        // 텍스트 응답만 온 경우 (이미지 생성 실패)
+        const textParts = parts.filter((p) => p.text).map((p) => p.text);
+        return res.status(502).json({
+          error: "Gemini did not return an image",
+          detail: textParts.join(" ") || "No details available",
         });
       }
 
-      const b64 = data.data?.[0]?.b64_json;
-      if (!b64) {
-        return res.status(502).json({ error: "No image data in response" });
-      }
-
-      // 5) PNG 바이너리로 응답
-      const imgBuffer = Buffer.from(b64, "base64");
+      // 6) PNG 바이너리로 응답
+      const imgBuffer = Buffer.from(imageData, "base64");
       res.set({
         "Content-Type": "image/png",
         "Content-Length": imgBuffer.length,
@@ -123,59 +129,52 @@ app.post(
       });
       return res.send(imgBuffer);
     } catch (err) {
-      if (err.name === "AbortError") {
-        return res.status(504).json({ error: "OpenAI request timed out" });
-      }
       console.error("Server error:", err);
-      return res.status(500).json({ error: err.message });
+
+      // Gemini API 에러 구조 파싱
+      const errMsg = err.message || String(err);
+      const status = err.status || 500;
+      return res.status(status).json({ error: errMsg });
     }
   }
 );
 
-// ── 이미지 생성 엔드포인트 (보너스) ──
+// ── 이미지 생성 엔드포인트 ──
 app.post("/generate", express.json(), async (req, res) => {
   try {
-    if (!OPENAI_API_KEY) {
-      return res.status(500).json({ error: "OPENAI_API_KEY not configured" });
+    if (!GOOGLE_API_KEY) {
+      return res.status(500).json({ error: "GOOGLE_API_KEY not configured" });
     }
 
-    const { prompt, size = "1024x1024", quality = "auto" } = req.body;
+    const { prompt } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: '"prompt" field is required' });
     }
 
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: prompt,
+      config: {
+        responseModalities: ["IMAGE"],
       },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        n: 1,
-        size,
-        quality,
-        output_format: "png",
-      }),
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("OpenAI error:", JSON.stringify(data, null, 2));
-      return res.status(response.status).json({
-        error: data.error?.message || "OpenAI API error",
-        detail: data.error,
-      });
+    const parts = response.candidates?.[0]?.content?.parts;
+    let imageData = null;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          imageData = part.inlineData.data;
+          break;
+        }
+      }
     }
 
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) {
+    if (!imageData) {
       return res.status(502).json({ error: "No image data in response" });
     }
 
-    const imgBuffer = Buffer.from(b64, "base64");
+    const imgBuffer = Buffer.from(imageData, "base64");
     res.set({
       "Content-Type": "image/png",
       "Content-Length": imgBuffer.length,
@@ -191,7 +190,7 @@ app.post("/generate", express.json(), async (req, res) => {
 // ── 서버 시작 ──
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`   Model: gpt-image-1`);
-  console.log(`   POST /edit     — image + mask + prompt → edited PNG`);
+  console.log(`   Model: gemini-2.5-flash-image (Google)`);
+  console.log(`   POST /edit     — image + prompt → edited PNG`);
   console.log(`   POST /generate — prompt → generated PNG`);
 });
