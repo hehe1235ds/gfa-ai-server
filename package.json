@@ -1,7 +1,7 @@
 {
-  "name": "gpt-image-edit-server",
-  "version": "2.0.0",
-  "description": "OpenAI gpt-image-1 image editing API server",
+  "name": "gfa-ai-server",
+  "version": "3.0.0",
+  "description": "Gemini image editing API server for Figma plugin",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -12,8 +12,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@google/genai": "^1.52.0",
     "express": "^5.1.0",
-    "form-data": "^4.0.2",
     "multer": "^1.4.5-lts.2"
   }
 }
